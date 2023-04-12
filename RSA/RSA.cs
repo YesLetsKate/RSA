@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,23 +13,24 @@ namespace RSA_
         public int[] GenerateKey()
         {
             var rand = new Random();
-            int[] pqe = new int[3];
+            int p = 0;
+            int q = 0;
             bool check = false;
 
             Thread thread1 = new Thread(() =>
             {
                 while (check != true)
                 {
-                    pqe[0] = rand.Next(1001, 10000);
-                    check = FermatPrimalityTest((int)pqe[0]);
+                    p = rand.Next(1001, 10000);
+                    check = FermatPrimalityTest((int)p);
                 }
             });
             Thread thread2 = new Thread(() =>
             {
                 while (check != true)
                 {
-                    pqe[1] = rand.Next(1001, 10000);
-                    check = FermatPrimalityTest((int)pqe[1]);
+                    q = rand.Next(1001, 10000);
+                    check = FermatPrimalityTest((int)q);
                 }
             });
             thread1.Start();
@@ -36,18 +38,22 @@ namespace RSA_
             thread1.Join();
             thread2.Join();
 
-            int fi = (pqe[0] - 1) * (pqe[1] - 1);
+            int fi = (p - 1) * (q - 1);
+
+            int e = 0;
             check = false;
             while (check != true)
             {
-                pqe[2] = rand.Next(0,fi);
-                check = IsCoprime(pqe[2], fi);
+                e = rand.Next(0,fi);
+                check = IsCoprime(e, fi);
             }
-            return pqe;
-        }
-        public int[] Encrypt(int p,int q, int e, string text)
-        {
             int n = p * q;
+            int d = Euclid(e, fi);
+            int[] ned = new int[3] { n, e, d };
+            return ned;
+        }
+        public int[] Encrypt(int n, int e, string text)
+        {
             char[] letters = text.ToCharArray();
             int[] Cipher = new int[letters.Length];
 
@@ -56,6 +62,17 @@ namespace RSA_
                 Cipher[i] = (int)FastExponentiation(letters[i],e,n);
             }
             return Cipher; 
+        }
+        public string Decrypt(int n, int d, string text)
+        {
+            string[] ciphertxt = text.Split(' ');
+            char[] opentxt = new char[ciphertxt.Length];
+            for(int i = 0;i< ciphertxt.Length; i++)
+            {
+                opentxt[i] = Convert.ToChar(FastExponentiation(Convert.ToInt32(ciphertxt[i]),d,n));
+            }
+            string opentext = String.Join(null,opentxt);
+            return opentext;
         }
         private static bool IsCoprime(int num1, int num2)
         {
@@ -77,6 +94,7 @@ namespace RSA_
         }
         private int Euclid(int a, int n)
         {
+            int mod = n;
             int q = 0;
             int y = 0;
             int y2 = 0;
@@ -92,7 +110,7 @@ namespace RSA_
                 y2 = y1;
                 y1 = y;
             }
-            return Modulo(y2, n);
+            return Modulo(y2, mod);
         }
         private int Modulo(int a, int n)
         {
